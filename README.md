@@ -14,10 +14,10 @@ Add `--scope local` to enable it for one project only.
 
 ## Usage
 
-The pane opens on session start. You can also edit it by hand:
+The pane shows while something is pending and closes once the list is empty. You can also edit it by hand:
 
 ```
-/notepad              open the pane and print the list
+/notepad              print the list (and open the pane if anything is pending)
 /notepad add <text>   add an item
 /notepad done 2 3     remove items once done
 /notepad rm 4         delete an item

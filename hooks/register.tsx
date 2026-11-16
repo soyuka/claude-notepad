@@ -31,9 +31,18 @@ const sync = async ($: EngineInterface): Promise<Notepad> => {
   return update($, notepad, () => ({ nextId: saved?.nextId ?? 1, items, sessionId }))
 }
 
+const showWhenPending = async ($: EngineInterface, pad: Notepad, wasEmpty: boolean): Promise<void> => {
+  if (pad.items.length === 0) {
+    await $.ui.close({ id: PANE })
+  } else if (wasEmpty) {
+    await $.ui.open({ id: PANE, title: 'Notepad' })
+  }
+}
+
 const change = async ($: EngineInterface, ops: Ops): Promise<Notepad> => {
-  await sync($)
+  const before = await sync($)
   const pad = await update($, notepad, p => apply(p, ops))
+  await showWhenPending($, pad, before.items.length === 0)
   if (pad.sessionId !== undefined) {
     await $.store.set(storeKey(pad.sessionId), { nextId: pad.nextId, items: pad.items })
     const keys = await $.store.keys()
@@ -118,8 +127,10 @@ export const register: Register = on => {
         },
       },
     })
-    await sync($)
-    void $.ui.open({ id: PANE, title: 'Notepad' })
+    const pad = await sync($)
+    if (pad.items.length > 0) {
+      void $.ui.open({ id: PANE, title: 'Notepad' })
+    }
 
     return next(e)
   })
@@ -146,8 +157,10 @@ export const register: Register = on => {
       : null
 
     if (ops === null) {
-      await $.ui.open({ id: PANE, title: 'Notepad' })
       const pad = await sync($)
+      if (pad.items.length > 0) {
+        await $.ui.open({ id: PANE, title: 'Notepad' })
+      }
 
       return { text: verb === '' || verb === 'show' ? format(pad) : USAGE }
     }
@@ -165,7 +178,6 @@ export const register: Register = on => {
 
     return (
       <Box flexDirection="column">
-        {items.length === 0 && <Text dimColor>Nothing pending yet.</Text>}
         {shown.map(i => (
           <Text>
             • {i.text} <Text dimColor>#{i.id}</Text>

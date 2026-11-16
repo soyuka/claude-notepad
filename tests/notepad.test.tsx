@@ -19,6 +19,7 @@ const boot = async (
   $: Parameters<TestBody>[0],
   on: Parameters<TestBody>[1],
   store = new Map<string, unknown>(),
+  panes: string[] = [],
 ) => {
   on('store.get', (_, e) => ({ value: store.get(e.key) }))
   on('store.set', (_, e) => (store.set(e.key, e.value), { value: undefined }))
@@ -27,7 +28,8 @@ const boot = async (
   on('session.id', () => ({ value: 'sid' }))
   on('command.register', () => ({ value: { command: 'notepad' } }))
   on('tool.register', () => ({ value: { tool: 'mcp__session-notepad__notepad' } }))
-  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('ui.open', (_, e) => (panes.push(`open:${e.id}`), { value: { isPlaced: true } }))
+  on('ui.close', (_, e) => (panes.push(`close:${e.id}`), { value: undefined }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
 
@@ -82,4 +84,26 @@ test('list saved under the session id comes back on a new start', async ($, on) 
       { id: 3, text: 'check the cache' },
     ],
   })
+})
+
+test('pane shows only while something is pending', async ($, on) => {
+  const panes: string[] = []
+  await boot($, on, new Map<string, unknown>(), panes)
+  expect(panes).toEqual([])
+
+  await $.tool.call({ tool: 'mcp__session-notepad__notepad', add: ['check logs'] } as never)
+  await $.tool.call({ tool: 'mcp__session-notepad__notepad', add: ['check metrics'] } as never)
+  expect(panes).toEqual(['open:notepad'])
+
+  await $.tool.call({ tool: 'mcp__session-notepad__notepad', done: [1, 2] } as never)
+  expect(panes).toEqual(['open:notepad', 'close:notepad'])
+
+  await $.command.run({ command: 'notepad', args: '' } as never)
+  expect(panes).toEqual(['open:notepad', 'close:notepad'])
+})
+
+test('pane opens on start when the saved list has items', async ($, on) => {
+  const panes: string[] = []
+  await boot($, on, new Map<string, unknown>([['pad:sid', { nextId: 2, items: [{ id: 1, text: 'retry path' }] }]]), panes)
+  expect(panes).toEqual(['open:notepad'])
 })
