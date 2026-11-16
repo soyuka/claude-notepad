@@ -1,0 +1,10 @@
+{
+  "name": "session-notepad",
+  "version": "0.1.0",
+  "description": "Per-session pane keeping a running bullet list of small things left to test or check",
+  "author": { "name": "soyuka", "url": "https://github.com/soyuka" },
+  "homepage": "https://github.com/soyuka/claude-notepad",
+  "repository": "https://github.com/soyuka/claude-notepad",
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

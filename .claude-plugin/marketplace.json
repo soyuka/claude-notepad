@@ -1,0 +1,8 @@
+{
+  "name": "claude-notepad",
+  "owner": { "name": "soyuka" },
+  "description": "Per-session notepad pane for Claude Code",
+  "plugins": [
+    { "name": "session-notepad", "source": "./", "description": "Per-session pane keeping a running bullet list of small things left to test or check" }
+  ]
+}
