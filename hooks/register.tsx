@@ -80,6 +80,7 @@ const INSTRUCTIONS = `A band above the prompt shows a per-session notepad: a sho
 - add an item whenever you or the person mention something still to test, check or do later, one short line each, in the person's language
 - mark items done as soon as they are verified or no longer relevant (done items are removed), edit them when they change
 - do not add the task currently being worked on, nor anything already listed
+- it is a session todo list, not memory: it dies with the session, so never put facts, decisions, preferences or anything worth keeping across sessions here, that goes to memory or the repo
 The tool answers with the full list; read it rather than guessing ids.`
 
 const USAGE =
