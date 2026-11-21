@@ -4,7 +4,6 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { Notepad } from '../types'
 
 const PLUGIN = 'session-notepad'
-const PANE = 'notepad'
 const TOOL = 'notepad'
 const TOOL_FULL = `mcp__${PLUGIN}__${TOOL}`
 
@@ -15,6 +14,7 @@ const notepad = atom(
 )
 
 const KEEP_SESSIONS = 100
+const MAX_SHOWN = 5
 const storeKey = (sessionId: string) => `pad:${sessionId}`
 
 const sync = async ($: EngineInterface): Promise<Notepad> => {
@@ -31,18 +31,9 @@ const sync = async ($: EngineInterface): Promise<Notepad> => {
   return update($, notepad, () => ({ nextId: saved?.nextId ?? 1, items, sessionId }))
 }
 
-const showWhenPending = async ($: EngineInterface, pad: Notepad, wasEmpty: boolean): Promise<void> => {
-  if (pad.items.length === 0) {
-    await $.ui.close({ id: PANE })
-  } else if (wasEmpty) {
-    await $.ui.open({ id: PANE, title: 'Notepad' })
-  }
-}
-
 const change = async ($: EngineInterface, ops: Ops): Promise<Notepad> => {
-  const before = await sync($)
+  await sync($)
   const pad = await update($, notepad, p => apply(p, ops))
-  await showWhenPending($, pad, before.items.length === 0)
   if (pad.sessionId !== undefined) {
     await $.store.set(storeKey(pad.sessionId), { nextId: pad.nextId, items: pad.items })
     const keys = await $.store.keys()
@@ -85,7 +76,7 @@ const format = (pad: Notepad): string =>
     ? 'Notepad is empty.'
     : pad.items.map(i => `#${i.id} ${i.text}`).join('\n')
 
-const INSTRUCTIONS = `A pane beside the chat shows a per-session notepad: a short bullet list of small pending items the person must not lose as output scrolls (things to test, check, verify, try, follow up on). Keep it current with this tool, without being asked:
+const INSTRUCTIONS = `A band above the prompt shows a per-session notepad: a short bullet list of small pending items the person must not lose as output scrolls (things to test, check, verify, try, follow up on). Keep it current with this tool, without being asked:
 - add an item whenever you or the person mention something still to test, check or do later, one short line each, in the person's language
 - mark items done as soon as they are verified or no longer relevant (done items are removed), edit them when they change
 - do not add the task currently being worked on, nor anything already listed
@@ -104,7 +95,7 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'notepad',
-      description: 'Session notepad: open the pane, or add/done/rm items',
+      description: 'Session notepad: show the list, or add/done/rm items',
     })
     await $.tool.register({
       name: TOOL,
@@ -127,10 +118,7 @@ export const register: Register = on => {
         },
       },
     })
-    const pad = await sync($)
-    if (pad.items.length > 0) {
-      void $.ui.open({ id: PANE, title: 'Notepad' })
-    }
+    await sync($)
 
     return next(e)
   })
@@ -157,12 +145,7 @@ export const register: Register = on => {
       : null
 
     if (ops === null) {
-      const pad = await sync($)
-      if (pad.items.length > 0) {
-        await $.ui.open({ id: PANE, title: 'Notepad' })
-      }
-
-      return { text: verb === '' || verb === 'show' ? format(pad) : USAGE }
+      return { text: verb === '' || verb === 'show' ? format(await sync($)) : USAGE }
     }
 
     const pad = await change($, ops)
@@ -170,14 +153,18 @@ export const register: Register = on => {
     return { text: format(pad) }
   })
 
-  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text } = $.ui.resolve(e)
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const { items } = await read($, notepad)
-    const room = Math.max(1, (e.viewport?.rows ?? 24) - 3)
-    const shown = items.slice(0, room)
+    if (e.props.hasSurvey || items.length === 0) {
+      return next(e)
+    }
+
+    const { Box, Text } = $.ui.resolve(e)
+    const shown = items.slice(0, MAX_SHOWN)
 
     return (
-      <Box flexDirection="column">
+      <Box key="notepad" flexDirection="column" borderStyle="round" borderDimColor paddingX={1}>
+        <Text bold>Notepad</Text>
         {shown.map(i => (
           <Text>
             • {i.text} <Text dimColor>#{i.id}</Text>

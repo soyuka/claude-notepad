@@ -1,6 +1,6 @@
 # claude-notepad
 
-A Claude Code mod that keeps a per-session notepad in a pane beside the chat: a short bullet list of small pending items (things to test, check, try later) that would otherwise scroll away.
+A Claude Code mod that keeps a per-session notepad in a band above the prompt: a short bullet list of small pending items (things to test, check, try later) that would otherwise scroll away.
 
 Claude maintains it through a `notepad` tool: it adds items as they come up and removes them once verified. The list is saved per session id, so it comes back after a restart or `/resume`.
 
@@ -14,10 +14,10 @@ Add `--scope local` to enable it for one project only.
 
 ## Usage
 
-The pane shows while something is pending and closes once the list is empty. You can also edit it by hand:
+The band shows above the prompt while something is pending and disappears once the list is empty. You can also edit it by hand:
 
 ```
-/notepad              print the list (and open the pane if anything is pending)
+/notepad              print the list
 /notepad add <text>   add an item
 /notepad done 2 3     remove items once done
 /notepad rm 4         delete an item
